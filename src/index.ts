@@ -15,18 +15,26 @@ const fs = require('fs');
     const bookListLocator = await page.locator('.product_pod').all();
     const bookList = await bookListLocator.map(async (book) => {
         const title = await book.locator('h3 > a').innerText();
-        const price = await book.locator('.price_color').innerText();
         const availability = await book.locator('.instock.availability').innerText();
-        // console.log(title, price, availability);
+        const rating  = await book.locator('.star-rating').getAttribute('class');
 
+        //for each book, open up a new page and get the description
+        const bookPage = await browser.newPage();
+        const href = await book.locator('h3 > a').getAttribute('href');
+        await bookPage.goto(`http://books.toscrape.com/${href}`);
+        const description = await bookPage.locator('#product_description + p').innerText();
+        const price = await bookPage.locator('.table.table-striped > tbody > tr:nth-child(4) > td').innerText();
+
+        console.log(title, price, availability, rating)
+        
         fs.appendFile('books.json',
-            JSON.stringify({ title, price, availability }) + ',\n',
+            JSON.stringify({ title, price, availability, description }) + ',\n',
             function (err) {
                 if (err) throw err;
             }
         );
 
-        return { title, price, availability };
+        return { title, price, availability, description };
     });
     
     await page.waitForTimeout(1000);
